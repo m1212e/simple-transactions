@@ -1,7 +1,7 @@
 {
   "name": "@m1212e/simple-transactions",
   "module": "./out/index.mjs",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "type": "module",
   "repository": "https://github.com/m1212e/simple-transactions",
   "engines": {
