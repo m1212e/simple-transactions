@@ -78,6 +78,29 @@ describe("test transaction", async () => {
     expect(order[1]).toEqual(rollback);
   });
 
+  it("rollback of erroring fn should not be called", async () => {
+    const fn = mock(() => {});
+    const fn2 = mock(() => {
+      throw new Error("test");
+    });
+    const rollback = mock(() => {});
+    const rollback2 = mock(() => {});
+
+    try {
+      await transaction((tx) => {
+        tx({ fn, rollback });
+        tx({ fn: fn2, rollback: rollback2 });
+      });
+    } catch (error) {
+      expect((error as any).message).toBe("test");
+    }
+
+    expect(fn.mock.calls.length).toBe(1);
+    expect(rollback.mock.calls.length).toBe(1);
+    expect(fn2.mock.calls.length).toBe(1);
+    expect(rollback2.mock.calls.length).toBe(0);
+  });
+
   it("tx should return fn response", async () => {
     const dummy = { a: "b" };
     const fn = mock(() => dummy);
