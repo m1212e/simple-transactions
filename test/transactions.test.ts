@@ -160,4 +160,70 @@ describe("test transaction", async () => {
     expect(rollback2.mock.calls.length).toBe(1);
     expect(abortRollbackReporter.mock.calls.length).toBe(1);
   });
+
+  it("rollback error should be called multiple times", async () => {
+    const fn = mock(() => {});
+    const fn2 = mock(() => {});
+    const rollback = mock(() => {
+      throw new Error("rollback error");
+    });
+    const rollback2 = mock(() => {
+      throw new Error("rollback error");
+    });
+    const abortRollbackReporter = mock(() => {});
+
+    try {
+      await transaction(
+        (tx) => {
+          tx({ fn, rollback });
+          tx({ fn: fn2, rollback: rollback2 });
+          throw new Error("test");
+        },
+        { abortRollbackReporter: abortRollbackReporter, abortRollback: false },
+      );
+    } catch (error) {
+      expect((error as any).message).toBe("test");
+    }
+
+    expect(fn.mock.calls.length).toBe(1);
+    expect(rollback.mock.calls.length).toBe(1);
+    expect(fn2.mock.calls.length).toBe(1);
+    expect(rollback2.mock.calls.length).toBe(1);
+    expect(abortRollbackReporter.mock.calls.length).toBe(2);
+  });
+
+  it("rollback error should be called multiple times with parallel rollbacks", async () => {
+    const fn = mock(() => {});
+    const fn2 = mock(() => {});
+    const rollback = mock(() => {
+      throw new Error("rollback error");
+    });
+    const rollback2 = mock(() => {
+      throw new Error("rollback error");
+    });
+    const abortRollbackReporter = mock(() => {});
+
+    try {
+      await transaction(
+        (tx) => {
+          tx({ fn, rollback });
+          tx({ fn: fn2, rollback: rollback2 });
+          throw new Error("test");
+        },
+        {
+          abortRollbackReporter: abortRollbackReporter,
+          abortRollback: false,
+          maintainRollbackOrder: false,
+        },
+      );
+    } catch (error) {
+      expect((error as any).message).toBe("test");
+    }
+
+    expect(fn.mock.calls.length).toBe(1);
+    expect(rollback.mock.calls.length).toBe(1);
+    expect(fn2.mock.calls.length).toBe(1);
+    expect(rollback2.mock.calls.length).toBe(1);
+    expect(abortRollbackReporter.mock.calls.length).toBe(2);
+  });
 });

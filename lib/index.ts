@@ -88,10 +88,19 @@ export async function transaction<T, P extends MaybePromise<T>>(
         }
       }
     } else {
-      const rollbacks = rollbackFunctions.map((rollback) => rollback());
-      for (const rollback of rollbacks) {
-        await rollback;
-      }
+      await Promise.all(
+        rollbackFunctions.map(async (rollback) => {
+          if (options.abortRollbackReporter) {
+            try {
+              await rollback();
+            } catch (error) {
+              options.abortRollbackReporter(error as Error);
+            }
+          } else {
+            rollback();
+          }
+        }),
+      );
     }
 
     throw error;
