@@ -1,0 +1,6 @@
+[test]
+coverage = true
+preload = ["./test/preload.test.ts"]
+coverageReporter = ["text", "lcov"]
+coverageDir = "coverage"
+coverageSkipTestFiles = true  

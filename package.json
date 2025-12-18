@@ -1,0 +1,36 @@
+{
+  "name": "@m1212e/simple-transactions",
+  "module": "./out/index.mjs",
+  "version": "0.0.1",
+  "type": "module",
+  "repository": "https://github.com/m1212e/simple-transactions",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "license": "MIT",
+  "scripts": {
+    "format": "bun run lint",
+    "lint": "bunx biome check --write .",
+    "build": "tsdown",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.3.10",
+    "@types/bun": "latest",
+    "@types/pluralize": "^0.0.33",
+    "lefthook": "^2.0.12",
+    "tsdown": "^0.18.1"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "main": "./out/index.cjs",
+  "types": "./out/index.d.cts",
+  "exports": {
+    ".": {
+      "import": "./out/index.mjs",
+      "require": "./out/index.cjs"
+    },
+    "./package.json": "./package.json"
+  }
+}
