@@ -131,4 +131,33 @@ describe("test transaction", async () => {
       expect((error as any).message).toBe("Transaction timed out after 1ms");
     }
   });
+
+  it("rollback error should be called", async () => {
+    const fn = mock(() => {});
+    const fn2 = mock(() => {});
+    const rollback = mock(() => {
+      throw new Error("rollback error");
+    });
+    const rollback2 = mock(() => {});
+    const abortRollbackReporter = mock(() => {});
+
+    try {
+      await transaction(
+        (tx) => {
+          tx({ fn, rollback });
+          tx({ fn: fn2, rollback: rollback2 });
+          throw new Error("test");
+        },
+        { abortRollbackReporter: abortRollbackReporter },
+      );
+    } catch (error) {
+      expect((error as any).message).toBe("rollback error");
+    }
+
+    expect(fn.mock.calls.length).toBe(1);
+    expect(rollback.mock.calls.length).toBe(1);
+    expect(fn2.mock.calls.length).toBe(1);
+    expect(rollback2.mock.calls.length).toBe(1);
+    expect(abortRollbackReporter.mock.calls.length).toBe(1);
+  });
 });
