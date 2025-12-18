@@ -27,8 +27,8 @@
   "types": "./out/index.d.cts",
   "exports": {
     ".": {
-      "import": "./out/index.mjs",
-      "require": "./out/index.cjs"
+      "require": "./out/index.cjs",
+      "import": "./out/index.mjs"
     },
     "./package.json": "./package.json"
   }

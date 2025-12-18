@@ -132,6 +132,25 @@ describe("test transaction", async () => {
     }
   });
 
+  it("should not timeout", async () => {
+    const fn = mock(
+      async () =>
+        new Promise<void>((resolve) => {
+          setTimeout(() => resolve(), 1000);
+        }),
+    );
+    const rollback = mock(() => {});
+
+    await transaction(
+      async (tx) => {
+        await tx({ fn, rollback });
+      },
+      { timeout: 2000 },
+    );
+    expect(fn.mock.calls.length).toBe(1);
+    expect(rollback.mock.calls.length).toBe(0);
+  });
+
   it("rollback error should be called", async () => {
     const fn = mock(() => {});
     const fn2 = mock(() => {});
