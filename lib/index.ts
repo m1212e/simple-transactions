@@ -9,8 +9,9 @@ function createTX(rollbackFunctions: Array<RollbackFunction>) {
     fn: () => P;
     rollback: RollbackFunction;
   }) => {
+    const result = fn();
     rollbackFunctions.push(rollback);
-    return fn();
+    return result;
   };
 }
 
