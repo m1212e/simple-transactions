@@ -6,7 +6,14 @@ function createTX(rollbackFunctions: Array<RollbackFunction>) {
     fn,
     rollback,
   }: {
+    /**
+     * A function to execute within the transaction.
+     */
     fn: () => P;
+    /**
+     * A function to execute if an error occurs during the transaction.
+     * Should rollback the paired fn call and undo any changes made by the fn call.
+     */
     rollback: RollbackFunction;
   }): P => {
     const result = fn();
@@ -23,6 +30,9 @@ function createTX(rollbackFunctions: Array<RollbackFunction>) {
   };
 }
 
+/**
+ * Create a transaction that executes the provided functions and rolls back if an error occurs during execution.
+ */
 export async function transaction<T, P extends MaybePromise<T>>(
   content: (transaction: ReturnType<typeof createTX>) => P,
   options?: {
