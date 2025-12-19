@@ -101,6 +101,29 @@ describe("test transaction", async () => {
     expect(rollback2.mock.calls.length).toBe(0);
   });
 
+  it("rollback of erroring fn should not be called in async context", async () => {
+    const fn = mock(async () => {});
+    const fn2 = mock(async () => {
+      throw new Error("test");
+    });
+    const rollback = mock(async () => {});
+    const rollback2 = mock(async () => {});
+
+    try {
+      await transaction(async (tx) => {
+        await tx({ fn, rollback });
+        await tx({ fn: fn2, rollback: rollback2 });
+      });
+    } catch (error) {
+      expect((error as any).message).toBe("test");
+    }
+
+    expect(fn.mock.calls.length).toBe(1);
+    expect(rollback.mock.calls.length).toBe(1);
+    expect(fn2.mock.calls.length).toBe(1);
+    expect(rollback2.mock.calls.length).toBe(0);
+  });
+
   it("tx should return fn response", async () => {
     const dummy = { a: "b" };
     const fn = mock(() => dummy);

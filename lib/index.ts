@@ -8,10 +8,18 @@ function createTX(rollbackFunctions: Array<RollbackFunction>) {
   }: {
     fn: () => P;
     rollback: RollbackFunction;
-  }) => {
+  }): P => {
     const result = fn();
-    rollbackFunctions.push(rollback);
-    return result;
+
+    if (result instanceof Promise) {
+      return result.then((value) => {
+        rollbackFunctions.push(rollback);
+        return value;
+      }) as P;
+    } else {
+      rollbackFunctions.push(rollback);
+      return result;
+    }
   };
 }
 
