@@ -37,6 +37,17 @@ npm i @m1212e/simple-transactions
       console.error(error.message); // test
     }
 ```
+### Finalizers
+Sometimes it might be useful to register some calls throughout the lifetime of a transaction, that are supposed to run at the end, after the transaction completed.
+For this, you can use finalizers. They can be registered as part of a transaction call or manually at any time on a transaction object:
+```ts
+transaction((tx) => {
+  tx.onFinalize(finalizer);         // manually
+  tx({ fn, rollback, finalizer });  // as part of a transaction call
+});
+```
+Both ways of registering do not differ in functionality. The finalizers receive the success or failure state of the transaction as parameter (boolean, true for success, false for failure).
+
 ## Configuration
 You can configure the transaction with a few helpful options passed as the second parameter.
 ```ts

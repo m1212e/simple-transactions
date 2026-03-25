@@ -6,7 +6,7 @@ function createTX(
   rollbackFunctions: Array<RollbackFunction>,
   finalizerFunctions: Array<FinalizerFunction>,
 ) {
-  return <T, P extends MaybePromise<T>>({
+  const tx = <T, P extends MaybePromise<T>>({
     fn,
     rollback,
     finalizer,
@@ -44,6 +44,15 @@ function createTX(
       rollbackFunctions.push(rollback);
       return result;
     }
+  };
+
+  tx.onFinalize = (finalizer: FinalizerFunction) => {
+    finalizerFunctions.push(finalizer);
+    return tx;
+  };
+
+  return tx as typeof tx & {
+    onFinalize: (finalizer: FinalizerFunction) => typeof tx;
   };
 }
 

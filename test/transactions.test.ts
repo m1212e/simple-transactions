@@ -319,8 +319,6 @@ describe("test transaction", async () => {
     try {
       await transaction((tx) => {
         tx({ fn, rollback, finalizer });
-      });
-      await transaction((tx) => {
         tx({ fn, rollback, finalizer });
         throw new Error("test");
       });
@@ -329,7 +327,69 @@ describe("test transaction", async () => {
     }
 
     expect(fn.mock.calls.length).toBe(2);
-    expect(rollback.mock.calls.length).toBe(1);
+    expect(rollback.mock.calls.length).toBe(2);
     expect(finalizer.mock.calls.length).toBe(2);
+  });
+
+  it("multiple finalizers and manually registered finalizers should be called", async () => {
+    const fn = mock(() => {});
+    const rollback = mock(() => {});
+    const finalizer = mock(() => {});
+
+    await transaction((tx) => {
+      tx.onFinalize(finalizer);
+      tx({ fn, rollback, finalizer });
+      tx({ fn, rollback, finalizer });
+    });
+
+    expect(fn.mock.calls.length).toBe(2);
+    expect(rollback.mock.calls.length).toBe(0);
+    expect(finalizer.mock.calls.length).toBe(3);
+  });
+
+  it("finalizers should be called after the transaction completes", async () => {
+    const fn = mock(() => {});
+    const rollback = mock(() => {});
+    const finalizer = mock(() => {
+      expect(complete).toBe(true);
+    });
+
+    let complete = false;
+
+    await transaction((tx) => {
+      tx.onFinalize(finalizer);
+      tx({ fn, rollback, finalizer });
+      tx({ fn, rollback, finalizer });
+      complete = true;
+    });
+
+    expect(fn.mock.calls.length).toBe(2);
+    expect(rollback.mock.calls.length).toBe(0);
+    expect(finalizer.mock.calls.length).toBe(3);
+  });
+
+  it("finalizers should receive the transaction result state boolean", async () => {
+    const fn = mock(() => {});
+    const rollback = mock(() => {});
+    const finalizer = mock(() => {});
+
+    await transaction((tx) => {
+      tx.onFinalize(finalizer);
+      tx({ fn, rollback, finalizer });
+      tx({ fn, rollback, finalizer });
+    });
+
+    expect(finalizer).toHaveBeenLastCalledWith(true);
+
+    try {
+      await transaction((tx) => {
+        tx.onFinalize(finalizer);
+        tx({ fn, rollback, finalizer });
+        tx({ fn, rollback, finalizer });
+        throw new Error("test");
+      });
+    } catch (e) {}
+
+    expect(finalizer).toHaveBeenLastCalledWith(false);
   });
 });
