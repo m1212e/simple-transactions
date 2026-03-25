@@ -10,7 +10,7 @@ describe("test transaction", async () => {
 
   it("should return object", async () => {
     const dummy = { a: "b" };
-    const ret = await transaction((tx) => {
+    const ret = await transaction((_tx) => {
       return dummy;
     });
 
@@ -290,5 +290,46 @@ describe("test transaction", async () => {
     expect(fn2.mock.calls.length).toBe(1);
     expect(rollback2.mock.calls.length).toBe(1);
     expect(abortRollbackReporter.mock.calls.length).toBe(2);
+  });
+
+  it("finalizer should be called", async () => {
+    const fn = mock(() => {});
+    const rollback = mock(() => {});
+    const finalizer = mock(() => {});
+
+    try {
+      await transaction((tx) => {
+        tx({ fn, rollback, finalizer });
+        throw new Error("test");
+      });
+    } catch (error) {
+      expect((error as any).message).toBe("test");
+    }
+
+    expect(fn.mock.calls.length).toBe(1);
+    expect(rollback.mock.calls.length).toBe(1);
+    expect(finalizer.mock.calls.length).toBe(1);
+  });
+
+  it("multiple finalizers should be called", async () => {
+    const fn = mock(() => {});
+    const rollback = mock(() => {});
+    const finalizer = mock(() => {});
+
+    try {
+      await transaction((tx) => {
+        tx({ fn, rollback, finalizer });
+      });
+      await transaction((tx) => {
+        tx({ fn, rollback, finalizer });
+        throw new Error("test");
+      });
+    } catch (error) {
+      expect((error as any).message).toBe("test");
+    }
+
+    expect(fn.mock.calls.length).toBe(2);
+    expect(rollback.mock.calls.length).toBe(1);
+    expect(finalizer.mock.calls.length).toBe(2);
   });
 });

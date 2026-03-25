@@ -1,10 +1,15 @@
 type MaybePromise<T> = T | Promise<T>;
 type RollbackFunction = () => MaybePromise<void>;
+type FinalizerFunction = (success: boolean) => MaybePromise<void>;
 
-function createTX(rollbackFunctions: Array<RollbackFunction>) {
+function createTX(
+  rollbackFunctions: Array<RollbackFunction>,
+  finalizerFunctions: Array<FinalizerFunction>,
+) {
   return <T, P extends MaybePromise<T>>({
     fn,
     rollback,
+    finalizer,
   }: {
     /**
      * A function to execute within the transaction.
@@ -15,7 +20,19 @@ function createTX(rollbackFunctions: Array<RollbackFunction>) {
      * Should rollback the paired fn call and undo any changes made by the fn call.
      */
     rollback: RollbackFunction;
+    /**
+     * A function to execute after the transaction completes, regardless of success or failure.
+     * Errors inside this function will not influence transaction execution or rollback in any way.
+     * Errors inside will be logged but not propagated.
+     * Execution happens in parallel after the transaction completes.
+     * Receives a boolean indicating whether the transaction succeeded. True if the transaction succeeded, false if it failed.
+     */
+    finalizer?: FinalizerFunction;
   }): P => {
+    if (finalizer) {
+      finalizerFunctions.push(finalizer);
+    }
+
     const result = fn();
 
     if (result instanceof Promise) {
@@ -64,8 +81,10 @@ export async function transaction<T, P extends MaybePromise<T>>(
   },
 ): Promise<P> {
   const rollbackFunctions: Array<RollbackFunction> = [];
-  const tx = createTX(rollbackFunctions);
+  const finalizerFunctions: Array<FinalizerFunction> = [];
+  const tx = createTX(rollbackFunctions, finalizerFunctions);
 
+  let success = true;
   try {
     if (options?.timeout === undefined) {
       return await content(tx);
@@ -77,15 +96,14 @@ export async function transaction<T, P extends MaybePromise<T>>(
         setTimeout(
           () =>
             reject(
-              new Error(
-                "Transaction timed out after " + options.timeout + "ms",
-              ),
+              new Error(`Transaction timed out after ${options.timeout}ms`),
             ),
           options.timeout,
         ),
       ),
     ]);
   } catch (error) {
+    success = false;
     if (
       options?.maintainRollbackOrder === undefined ||
       options.maintainRollbackOrder
@@ -123,5 +141,15 @@ export async function transaction<T, P extends MaybePromise<T>>(
     }
 
     throw error;
+  } finally {
+    await Promise.allSettled(
+      finalizerFunctions.map(async (finalizer) => {
+        try {
+          await finalizer(success);
+        } catch (error) {
+          console.error("Finalizer error:", error);
+        }
+      }),
+    );
   }
 }
